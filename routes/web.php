@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\CobaController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\AboutController;
@@ -32,16 +31,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Notifications\VerifikasiEmail;
 
-// Route::get('/', [HomeController::class, 'index'])->middleware(['auth']);
-// Route::get('/siswa', [SiswaController::class, 'index']);
-// Route::post('/siswa/tambah', [SiswaController::class, 'tambah'])->middleware(['auth']);
-// Route::post('/siswa/hapus', [SiswaController::class, 'hapus'])->middleware(['auth']);
-// Route::post('/siswa/ubah', [SiswaController::class, 'ubah'])->middleware(['auth']);
-// Route::get('/about', [AboutController::class, 'index'])->middleware(['auth']);
-// Route::get('/siswa/cari/{keyword}', [SiswaController::class, 'cari'])->middleware(['auth']);
+Route::get('/', [HomeController::class, 'index'])->middleware(['auth']);
+Route::get('/siswa', [StudentController::class, 'index']);
+Route::post('/siswa/tambah', [StudentController::class, 'tambah'])->middleware(['auth']);
+Route::post('/siswa/hapus', [StudentController::class, 'hapus'])->middleware(['auth']);
+Route::post('/siswa/ubah', [StudentController::class, 'ubah'])->middleware(['auth']);
+Route::get('/about', [AboutController::class, 'index'])->middleware(['auth']);
 
-Route::resource('/siswa', StudentController::class);
-Route::get('/siswa/getAPI/{siswa:nis}', [SiswaController::class, 'getAPI'])->middleware(['auth']);
+Route::get('/siswa/getAPI/{siswa:nis}', [StudentController::class, 'getAPI'])->middleware(['auth']);
 
 Route::get('extracurriculars/{extracurricular:slug}', function (Extracurricular $extracurricular) {
 	return view('extracurricular.extracurricular', [
@@ -55,7 +52,7 @@ Route::get('extracurriculars/', function () {
 		'title' => 'Ekstrakurikuler',
 		'extracurriculars' => Extracurricular::all()
 	]);
-})->middleware(['auth']);
+})->middleware('auth');
 
 Route::get('/guru', [TeacherController::class, 'index'])->middleware(['auth']);
 Route::post('/guru/tambah', [TeacherController::class, 'tambah'])->middleware(['auth']);

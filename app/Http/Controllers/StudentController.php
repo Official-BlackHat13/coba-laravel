@@ -2,69 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Models\Student;
 use App\Models\Extracurricular;
 use Illuminate\Support\Facades\Gate;
 use App\Models\User;
-use App\Models\School_Schedule;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
+use App\Exports\UsersExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
-        $siswa_auth = Student::where('nis', auth()->user()->kode_warga_sekolah)->get()->first();
         if (Gate::allows('admin')) {
             return view('siswa.dashboard', [
                 'title' => 'Siswa',
                 'data_siswa' => Student::with('extracurricular')->filter(request(['search', 'extracurricular']))->get()->sortBy('nis'),
-                'extracurriculars' => Extracurricular::all(),
+                'extracurriculars' => Extracurricular::all()
             ]);
         }
+        
         return view('siswa.index', [
             'title' => 'Siswa',
-            'data_siswa' => Student::with('extracurricular')->where('kelas', $siswa_auth->kelas)->filter(request(['search', 'extracurricular']))->get()->sortBy('nis'),
-            'data_mapel' => School_Schedule::where('kelas', $siswa_auth->kelas)->get(),
-            'extracurriculars' => Extracurricular::all(),
+            'data_siswa' => Student::with('extracurricular')->filter(request(['search', 'extracurricular']))->get()->sortBy('nis'),
+            'extracurriculars' => Extracurricular::all()
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    public function tambah(Request $request)
     {
         Gate::authorize('admin');
 
         $validated = $request->validate([
-            'nama' => 'required',
-            'nis' => 'required|unique:students',
-            'email' => 'required|email:rfc,filter|unique:students',
-            'jurusan' => 'required',
-            'kelas' => 'required',
+        	'nama' => 'required',
+        	'nis' => 'required|unique:students',
+        	'email' => 'required|email:rfc,filter|unique:students',
+        	'jurusan' => 'required',
+        	'kelas' => 'required',
             'extracurricular' => 'required',
-            'hp_number' => 'required|integer',
-            'alamat' => 'required'
+        	'hp_number' => 'required|integer',
+        	'alamat' => 'required'
         ]);
 
         $validated['nama'] = ucwords($validated['nama']);
@@ -85,64 +64,70 @@ class StudentController extends Controller
         }
 
         // Ekstrakurikuler
-        $validated['extracurricular_id'] = Extracurricular::all()->where('name', $validated['extracurricular'])->pluck('id')->first();
-        unset($validated['extracurricular']);
+        $validated['extracurricular_id'] = Extracurricular::all()->where('name', $validated['extracurricular'])->pluck('id')[0];
 
-        Student::create($validated);
-        
-        $request->session()->flash('siswa', ' berhasil ditambahkan');
-        $request->session()->flash('success_fail', 'success');
+        $affected = DB::table('students')->insertGetId([
+        	'nama' => $validated['nama'],
+        	'nis' => $validated['nis'],
+        	'email' => $validated['email'],
+        	'jurusan' => $validated['jurusan'],
+        	'kelas' => $validated['kelas'],
+            'extracurricular_id' => $validated['extracurricular_id'],
+        	'hp_number' => $validated['hp_number'],
+        	'alamat' => $validated['alamat']
+        ]);
+
+        if ($affected > 0) {
+            $request->session()->flash('siswa', ' berhasil ditambahkan');
+            $request->session()->flash('success_fail', 'success');
+        }
+        else {
+            $request->session()->flash('siswa', ' gagal ditambahkan');
+            $request->session()->flash('success_fail', 'danger');
+        }
         return redirect('/siswa');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Student  $student
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Student $student)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Student  $student
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Student $student)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Student  $student
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Student $student)
+    public function getAPI(Student $siswa)
     {
         Gate::authorize('admin');
 
-        $validated = $request->validate([
-            'nama' => 'required',
-            'nis' => 'required',
-            'email' => 'required|email:rfc,filter',
-            'jurusan' => 'required',
-            'kelas' => 'required',
+        return json_encode($siswa);
+    }
+
+    public function hapus(Request $request, User $user)
+    {
+        Gate::authorize('admin');
+
+    	$nis = intval($request->input('nis'));
+        $affected = DB::table('students')->where('nis', $nis)->delete();
+        if ($affected > 0) {
+        	$request->session()->flash('siswa', ' berhasil dihapus');
+            $request->session()->flash('success_fail', 'success');
+        }
+        else {
+            $request->session()->flash('siswa', ' gagal dihapus');
+            $request->session()->flash('success_fail', 'danger');
+        }
+        return redirect('/siswa');
+    }
+
+    public function ubah(Request $request)
+    {
+        Gate::authorize('admin');
+
+    	$validated = $request->validate([
+        	'nama' => 'required',
+        	'nis' => 'required',
+        	'email' => 'required|email:rfc,filter',
+        	'jurusan' => 'required',
+        	'kelas' => 'required',
             'extracurricular' => 'required',
-            'hp_number' => 'required',
-            'alamat' => 'required'
+        	'hp_number' => 'required',
+        	'alamat' => 'required'
         ]);
 
-        $id = intval($request->input('id'));
-        $validated['nama'] = ucwords($validated['nama']);
-
-        // Ubah tulisan nomor hp
+        // Ubah tulisan no. hp
         $validated['hp_number'] = strval($validated['hp_number']);
         if (strlen($validated['hp_number']) == 11) {
             $validated['hp_number'] = '(+62) '. Str::substr($validated['hp_number'], 0, 3). ' ' .Str::substr($validated['hp_number'], 3, 4). ' ' .Str::substr($validated['hp_number'], 7, 4);
@@ -153,42 +138,54 @@ class StudentController extends Controller
         else if (strlen($validated['hp_number']) == 9) {
             $validated['hp_number'] = '(+62) '. Str::substr($validated['hp_number'], 0, 2). ' ' .Str::substr($validated['hp_number'], 2, 4). ' ' .Str::substr($validated['hp_number'], 6, 3);
         }
-        else {
-            return back()->withError(['hp_number' => 'Nomor hp tidak valid']);
+
+    	$id = intval($request->input('id'));
+        $validated['extracurricular'] = Extracurricular::all()->where('name', $validated['extracurricular'])->pluck('id')[0];
+
+        $affected = DB::table('students')
+              ->where('id', $id)
+              ->update([
+              	'nama' => ucwords($validated['nama']),
+	        	'nis' => $validated['nis'],
+	        	'email' => $validated['email'],
+	        	'jurusan' => $validated['jurusan'],
+	        	'kelas' => $validated['kelas'],
+                'extracurricular_id' => $validated['extracurricular'],
+	        	'hp_number' => $validated['hp_number'],
+	        	'alamat' => $validated['alamat']
+          ]);
+        
+        if ($affected > 0) {
+            $request->session()->flash('siswa', ' berhasil diubah');
+            $request->session()->flash('success_fail', 'success');
         }
-
-        $student = Student::find($id);
-        $student->nama = $validated['nama'];
-        $student->nis = $validated['nis'];
-        $student->jurusan = $validated['jurusan'];
-        $student->kelas = $validated['kelas'];
-        $student->email = $validated['email'];
-        $student->extracurricular_id = Extracurricular::where('name', $validated['extracurricular'])->get()->first()->id;
-        $student->hp_number = $validated['hp_number'];
-        $student->alamat = $validated['alamat'];
-
-        $student->save();
-
-        $request->session()->flash('siswa', ' berhasil diubah');
-        $request->session()->flash('success_fail', 'success');
+        else {
+            $request->session()->flash('siswa', ' gagal diubah');
+            $request->session()->flash('success_fail', 'danger');
+        }
         return redirect('/siswa');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Student  $student
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Request $request, Student $student)
+    public function cari($keyword)
     {
-
+        $data = Student::with('extracurricular')->where('nama', 'like', '%'. $keyword . '%')->orWhere('email', 'like', '%'. $keyword . '%');
+        return $data->get()->sortBy('nis')->toJson();
     }
 
-    public function getAPI(Student $siswa)
+    public function exportExcel()
     {
-        Gate::authorize('admin');
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'Hello World !');
 
-        return json_encode($siswa);
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('hello_world.xlsx');
+
+        // header('Content-Type: application/x-www-form-urlencoded');
+        header('Content-disposition: attachment; filename=hello_world.xlsx');
+        readfile('hello_world.xlsx');
+        unlink('hello_world.xlsx');
+
+        return redirect('/siswa');
     }
 }

@@ -18,7 +18,7 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->string('username')->unique();
             $table->string('email')->unique();
-            $table->string('kode_warga_sekolah')->unique();
+            $table->string('teacher_id')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('email_verify_token')->nullable();
             $table->string('password');
@@ -26,6 +26,7 @@ class CreateUsersTable extends Migration
             $table->string('picture')->default('default.png');
             $table->rememberToken();
             $table->timestamps();
+            $table->foreign('teacher_id')->references('id')->on('teachers');
         });
     }
 

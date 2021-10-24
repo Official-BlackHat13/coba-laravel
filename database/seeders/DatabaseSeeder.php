@@ -7,6 +7,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use App\Models\Student;
 use Database\Factories\StudentFactory;
+use App\Models\Subject;
+use Database\Factories\SubjectFactory;
 use App\Models\Teacher;
 use Database\Factories\TeacherFactory;
 use App\Models\Extracurricular;
@@ -34,12 +36,14 @@ class DatabaseSeeder extends Seeder
         // 	"alamat" => "Jl. Gunung Gede"
         // ]);
 
-        Teacher::factory()->count(30)->create();
+        Teacher::factory()->count(90)->create();
         
         Student::factory()->count(30)->create();
 
         Extracurricular::factory()->count(9)->create();
 
         User::factory()->count(4)->create();
+
+        Subject::factory()->count(85)->create();
     }
 }

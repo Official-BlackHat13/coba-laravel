@@ -42,33 +42,6 @@
 			@endforeach
 	  </tbody>
 	</table>
-
-
-  <table class="table table-striped table-hover">
-    <thead>
-      <tr>
-        <th scope="col">No.</th>
-        <th scope="col">Sesi pelajaran</th>
-        <th scope="col">Senin</th>
-        <th scope="col">Selasa</th>
-        <th scope="col">Rabu</th>
-        <th scope="col">Kamis</th>
-        <th scope="col">Jumat</th>
-        <th scope="col">Sabtu</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for ($i = 0; $i < 8; $i++)
-        <tr>
-          <td>{{ $i+1 }}</td>
-          <td>08:00 - 09:00</td>
-          @for ($j = 0; $j < 6; $i++)
-          <td>{{ $data_mapel[$j]['jam_'. $i] }}</td>
-          @endfor
-        </tr>
-      @endfor
-    </tbody>
-  </table>
 </div>
 
 

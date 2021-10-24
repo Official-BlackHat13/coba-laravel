@@ -34,14 +34,15 @@ class UserFactory extends Factory
         else {
             $kode_guru .= $this->auto_increment;
         }
-        $guru = Teacher::where('teacher_id', $kode_guru)->get()->first();
+        $guru = Teacher::where('id', $kode_guru)->get()->first();
+        $role = ($guru->is_teacher) ? 2 : 3;
         return [
             'name' => $guru->nama,
             'username' => $this->faker->userName(),
             'email' => $guru->email,
             'email_verified_at' => now(),
-            'kode_warga_sekolah' => $kode_guru,
-            'role_id' => 3,
+            'teacher_id' => $kode_guru,
+            'role_id' => $role,
             'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
         ];
     }
